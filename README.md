@@ -3,22 +3,7 @@
 This repository contains a lightweight notebook-first setup for auditing Polish hate-speech models on a binary harmful vs non-harmful task.
 
 ## Project layout
-
-```text
-polish-hatespeech-audit/
-├── notebooks/
-│   └── 01_baseline_ptaszynski_hatecheck.ipynb
-├── data/
-│   └── test.csv
-├── results/
-│   └── .gitkeep
-├── src/
-│   ├── inference.py
-│   ├── metrics.py
-│   └── counterfactuals.py
-├── requirements.txt
-└── README.md
-```
+TBA
 
 ## Setup
 
