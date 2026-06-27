@@ -1,0 +1,9 @@
+text,label,category
+"To jest normalna dyskusja i nie ma tu nienawiści.",0,neutral
+"To są śmieci i trzeba ich przepędzić.",1,explicit_insult
+"Nie nienawidzę migrantów, trzeba im pomóc.",0,counter_speech
+"Anna jest głupia i trzeba ją wyrzucić.",1,targeted_abuse
+"Jan to pasożyt i powinien zniknąć.",1,targeted_abuse
+"Nie obrażaj ludzi ze względu na pochodzenie.",0,counter_speech
+"Ci ludzie są obrzydliwi i nie powinni tu mieszkać.",1,implicit_derogation
+"To tylko żart bez obraźliwych intencji.",0,neutral
