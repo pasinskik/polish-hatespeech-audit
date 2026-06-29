@@ -1,0 +1,23 @@
+{
+  "model_key": "ptaszynski",
+  "model_id": "ptaszynski/bert-base-polish-cyberbullying",
+  "model_revision": null,
+  "harmful_index": 1,
+  "threshold": 0.5,
+  "batch_size": 32,
+  "max_length": 256,
+  "seed": 42,
+  "device": "mps",
+  "torch_version": "2.2.2",
+  "transformers_version": "4.39.3",
+  "dataset_path": "/Users/lukaszsenderowski/Documents/projects/NLP_KUBA/data/counterfactual_dataset.parquet",
+  "n_rows": 45780,
+  "n_cases": 3815,
+  "n_variants": 12,
+  "mean_p_per_prefix_class": {
+    "feminine": 0.23346997797489166,
+    "masculine": 0.2675677537918091,
+    "neutral": 0.2739349901676178,
+    "original": 0.41602781414985657
+  }
+}
