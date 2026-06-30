@@ -1,0 +1,23 @@
+{
+  "model_key": "trelbert",
+  "model_id": "/content/polish-hatespeech-audit/models/trelbert-cyberbullying-binary",
+  "model_revision": null,
+  "harmful_index": 1,
+  "threshold": 0.5,
+  "batch_size": 32,
+  "max_length": 256,
+  "seed": 42,
+  "device": "cuda",
+  "torch_version": "2.11.0+cu128",
+  "transformers_version": "5.12.1",
+  "dataset_path": "/content/polish-hatespeech-audit/data/counterfactual_dataset.parquet",
+  "n_rows": 45780,
+  "n_cases": 3815,
+  "n_variants": 12,
+  "mean_p_per_prefix_class": {
+    "feminine": 0.40768158435821533,
+    "masculine": 0.4284064769744873,
+    "neutral": 0.39307859539985657,
+    "original": 0.43134868144989014
+  }
+}

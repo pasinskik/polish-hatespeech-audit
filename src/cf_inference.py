@@ -17,11 +17,12 @@ import transformers
 from huggingface_hub import HfApi
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from config import BATCH_SIZE, DATA_DIR, MAX_LENGTH, PTASZYNSKI_MODEL_ID, RESULTS_DIR, SEED
+from config import BATCH_SIZE, DATA_DIR, MAX_LENGTH, PTASZYNSKI_MODEL_ID, TRELBERT_FINETUNED_MODEL_ID, RESULTS_DIR, SEED
 from inference import HarmfulClassifier
 
 MODELS = {
     "ptaszynski": dict(model_id=PTASZYNSKI_MODEL_ID, harmful_index=1),
+    "trelbert": dict(model_id=TRELBERT_FINETUNED_MODEL_ID, harmful_index=1),
 }
 
 LABEL_GOLD_TO_INT = {"hateful": 1, "non-hateful": 0}

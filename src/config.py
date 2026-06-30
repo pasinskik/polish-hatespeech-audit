@@ -19,3 +19,5 @@ NEUTRAL_PREFIX = "Osoba"
 
 PREFIX_FORMAT = "{name}: {text}"
 
+CYBERBULLYING_HF_ID = "ptaszynski/PolishCyberbullyingDataset"
+TRELBERT_FINETUNED_MODEL_ID = str(ROOT / "models" / "trelbert-cyberbullying-binary")

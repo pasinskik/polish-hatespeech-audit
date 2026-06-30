@@ -9,6 +9,7 @@ Wszystkie wektorowe (PDF), gotowe do \\includegraphics w LaTeX.
 from __future__ import annotations
 
 import sys
+import argparse
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -40,13 +41,21 @@ mpl.rcParams.update(
 )
 
 
-def load_data():
-    preds = pd.read_parquet(RESULTS_DIR / "cf_ptaszynski_predictions.parquet")
-    stats = pd.read_parquet(RESULTS_DIR / "cf_ptaszynski_statistical_tests.parquet")
+def load_data(model_key: str):
+    preds_path = RESULTS_DIR / f"cf_{model_key}_predictions.parquet"
+    stats_path = RESULTS_DIR / f"cf_{model_key}_statistical_tests.parquet"
+
+    if not preds_path.exists():
+        raise FileNotFoundError(f"Missing predictions file: {preds_path}")
+    if not stats_path.exists():
+        raise FileNotFoundError(f"Missing statistical tests file: {stats_path}")
+
+    preds = pd.read_parquet(preds_path)
+    stats = pd.read_parquet(stats_path)
     return preds, stats
 
 
-def fig_heatmap(stats: pd.DataFrame) -> Path:
+def fig_heatmap(stats: pd.DataFrame, model_key: str, model_label: str) -> Path:
     """Heatmapa: pary porównań × functionality, kolor = Δp."""
     pairs = ["fem_vs_orig", "masc_vs_orig", "neutral_vs_orig", "fem_vs_masc"]
     pair_labels = {
@@ -74,22 +83,29 @@ def fig_heatmap(stats: pd.DataFrame) -> Path:
         for j in range(pivot.shape[1]):
             val = pivot.iloc[i, j]
             if pd.notna(val):
-                ax.text(j, i, f"{val:+.02f}", ha="center", va="center", fontsize=7,
-                        color="white" if abs(val) > vmax * 0.55 else "black")
+                ax.text(
+                    j,
+                    i,
+                    f"{val:+.02f}",
+                    ha="center",
+                    va="center",
+                    fontsize=7,
+                    color="white" if abs(val) > vmax * 0.55 else "black",
+                )
 
     cbar = fig.colorbar(im, ax=ax, fraction=0.04, pad=0.02)
     cbar.set_label(r"mean $\Delta p$ (probability shift)")
-    ax.set_title("Δp per functionality (M1: ptaszynski)")
+    ax.set_title(f"Δp per functionality ({model_label})")
     ax.set_xlabel("Comparison pair")
     ax.set_ylabel("HateCheck functionality")
 
-    out = FIG_DIR / "fig_heatmap_per_functionality.pdf"
+    out = FIG_DIR / f"fig_{model_key}_heatmap_per_functionality.pdf"
     fig.savefig(out)
     plt.close(fig)
     return out
 
 
-def fig_delta_per_target(stats: pd.DataFrame) -> Path:
+def fig_delta_per_target(stats: pd.DataFrame, model_key: str, model_label: str) -> Path:
     """Bar plot per target_ident dla pary fem_vs_masc z 95% CI."""
     sub = stats[(stats["slice_type"] == "target_ident") & (stats["pair"] == "fem_vs_masc")].copy()
     sub = sub[sub["n"] > 10].copy()
@@ -103,54 +119,103 @@ def fig_delta_per_target(stats: pd.DataFrame) -> Path:
     ci_high = sub["delta_ci_high"].to_numpy()
     err = np.vstack([means - ci_low, ci_high - means])
 
-    bars = ax.barh(y, means, xerr=err, color="#1f77b4", alpha=0.85, edgecolor="black", linewidth=0.5,
-                   error_kw=dict(ecolor="black", capsize=2, elinewidth=0.8))
+    ax.barh(
+        y,
+        means,
+        xerr=err,
+        color="#1f77b4",
+        alpha=0.85,
+        edgecolor="black",
+        linewidth=0.5,
+        error_kw=dict(ecolor="black", capsize=2, elinewidth=0.8),
+    )
 
     ax.axvline(0, color="black", linewidth=0.6)
     ax.set_yticks(y)
     ax.set_yticklabels(sub["slice_value"])
     ax.set_xlabel(r"$\Delta p$ (feminine − masculine, mean with 95% CI)")
-    ax.set_title("Effect of feminine vs masculine name by target group (M1)")
+    ax.set_title(f"Effect of feminine vs masculine name by target group ({model_label})")
     ax.invert_yaxis()
 
-    out = FIG_DIR / "fig_delta_per_target.pdf"
+    out = FIG_DIR / f"fig_{model_key}_delta_per_target.pdf"
     fig.savefig(out)
     plt.close(fig)
     return out
 
 
-def fig_p_distribution(preds: pd.DataFrame) -> Path:
+def fig_p_distribution(preds: pd.DataFrame, model_key: str, model_label: str) -> Path:
     """Histogram (overlapping density-like) P(harmful) per prefix_class."""
     classes = ["original", "neutral", "feminine", "masculine"]
-    colors = {"original": "#444444", "neutral": "#888888", "feminine": "#d62728", "masculine": "#1f77b4"}
+    colors = {
+        "original": "#444444",
+        "neutral": "#888888",
+        "feminine": "#d62728",
+        "masculine": "#1f77b4",
+    }
 
     fig, ax = plt.subplots(figsize=(6.5, 3.4))
     bins = np.linspace(0, 1, 41)
 
     for cls in classes:
         s = preds.loc[preds["prefix_class"] == cls, "p_harmful"].to_numpy()
-        ax.hist(s, bins=bins, alpha=0.45, label=f"{cls} (mean={s.mean():.2f})",
-                color=colors[cls], edgecolor=colors[cls], linewidth=0.6, density=True)
+        ax.hist(
+            s,
+            bins=bins,
+            alpha=0.45,
+            label=f"{cls} (mean={s.mean():.2f})",
+            color=colors[cls],
+            edgecolor=colors[cls],
+            linewidth=0.6,
+            density=True,
+        )
 
     ax.set_xlabel(r"$P(\mathrm{harmful})$")
     ax.set_ylabel("density")
-    ax.set_title("Distribution of $P(\\mathrm{harmful})$ by prefix class (M1)")
+    ax.set_title(f"Distribution of $P(\\mathrm{{harmful}})$ by prefix class ({model_label})")
     ax.legend(frameon=False, loc="upper right")
     ax.set_xlim(0, 1)
 
-    out = FIG_DIR / "fig_p_distribution.pdf"
+    out = FIG_DIR / f"fig_{model_key}_p_distribution.pdf"
     fig.savefig(out)
     plt.close(fig)
     return out
 
 
 def main() -> None:
-    preds, stats = load_data()
-    p1 = fig_heatmap(stats)
-    p2 = fig_delta_per_target(stats)
-    p3 = fig_p_distribution(preds)
-    for p in (p1, p2, p3):
-        print(f"saved: {p}  ({p.stat().st_size / 1024:.1f} KB)")
+    classes = ["original", "neutral", "feminine", "masculine"]
+    colors = {
+        "original": "#444444",
+        "neutral": "#888888",
+        "feminine": "#d62728",
+        "masculine": "#1f77b4",
+    }
+
+    fig, ax = plt.subplots(figsize=(6.5, 3.4))
+    bins = np.linspace(0, 1, 41)
+
+    for cls in classes:
+        s = preds.loc[preds["prefix_class"] == cls, "p_harmful"].to_numpy()
+        ax.hist(
+            s,
+            bins=bins,
+            alpha=0.45,
+            label=f"{cls} (mean={s.mean():.2f})",
+            color=colors[cls],
+            edgecolor=colors[cls],
+            linewidth=0.6,
+            density=True,
+        )
+
+    ax.set_xlabel(r"$P(\mathrm{harmful})$")
+    ax.set_ylabel("density")
+    ax.set_title(f"Distribution of $P(\\mathrm{{harmful}})$ by prefix class ({model_label})")
+    ax.legend(frameon=False, loc="upper right")
+    ax.set_xlim(0, 1)
+
+    out = FIG_DIR / f"fig_{model_key}_p_distribution.pdf"
+    fig.savefig(out)
+    plt.close(fig)
+    return out
 
 
 if __name__ == "__main__":

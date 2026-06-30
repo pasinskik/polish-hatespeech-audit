@@ -10,6 +10,7 @@ Wyniki: parquet w results/.
 from __future__ import annotations
 
 import sys
+import argparse
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -34,7 +35,7 @@ PAIRS = [
 ]
 
 
-def load_wide(predictions_path: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def load_wide(predictions_path: Path, threshold: float = 0.5) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Wczytuje long-format predykcje, robi wide pivot per p_harmful i y_pred,
     dodaje feminine_avg / masculine_avg per case (średnia po 5 imionach).
     Zwraca: (p_wide, y_wide, meta) gdzie meta ma functionality, target_ident, label_gold per case.
@@ -47,10 +48,12 @@ def load_wide(predictions_path: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.Da
 
     fem_cols = [f"feminine_{n}" for n in FEMININE_NAMES]
     masc_cols = [f"masculine_{n}" for n in MASCULINE_NAMES]
+
     p_wide["feminine_avg"] = p_wide[fem_cols].mean(axis=1)
     p_wide["masculine_avg"] = p_wide[masc_cols].mean(axis=1)
-    y_wide["feminine_avg"] = (p_wide["feminine_avg"] >= THRESHOLD).astype(int)
-    y_wide["masculine_avg"] = (p_wide["masculine_avg"] >= THRESHOLD).astype(int)
+
+    y_wide["feminine_avg"] = (p_wide["feminine_avg"] >= threshold).astype(int)
+    y_wide["masculine_avg"] = (p_wide["masculine_avg"] >= threshold).astype(int)
 
     meta = (
         df[["mhc_case_id", "functionality", "target_ident", "label_gold"]]
@@ -183,8 +186,28 @@ def add_holm_correction(df: pd.DataFrame, group_cols: list[str]) -> pd.DataFrame
 
 
 def main() -> None:
-    pred_path = RESULTS_DIR / "cf_ptaszynski_predictions.parquet"
-    p_wide, y_wide, meta = load_wide(pred_path)
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--model",
+        default="ptaszynski",
+        help="Model key used in filenames, e.g. ptaszynski or trelbert.",
+    )
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        default=0.5,
+        help="Decision threshold for averaged feminine/masculine variants.",
+    )
+    args = parser.parse_args()
+
+    pred_path = RESULTS_DIR / f"cf_{args.model}_predictions.parquet"
+    if not pred_path.exists():
+        raise FileNotFoundError(
+            f"Missing predictions file: {pred_path}. "
+            f"Run cf_inference.py --model {args.model} first."
+        )
+
+    p_wide, y_wide, meta = load_wide(pred_path, threshold=args.threshold)
     all_cases = p_wide.index.tolist()
     print(f"Cases: {len(all_cases)}, variants in p_wide: {p_wide.shape[1]}")
 
@@ -204,7 +227,7 @@ def main() -> None:
     df = pd.DataFrame([r.__dict__ for r in results])
     df = add_holm_correction(df, group_cols=["pair", "slice_type"])
 
-    out = RESULTS_DIR / "cf_ptaszynski_statistical_tests.parquet"
+    out = RESULTS_DIR / f"cf_{args.model}_statistical_tests.parquet"
     df.to_parquet(out, index=False)
     print(f"\nZapisano: {out}  ({len(df)} testów)")
 
